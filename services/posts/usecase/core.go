@@ -63,11 +63,34 @@ func GetCore(grpcCfg *configs.GrpcConfig, psxCfg *configs.DbPsxConfig, log *logr
 	return core, nil
 }
 
+func GetRedisCore(grpcCfg *configs.GrpcConfig, redisCfg *configs.DbRedisCfg, log *logrus.Logger) (*Core, error) {
+	redisRepo, err := posts_repo.GetRedisRepo(redisCfg)
+	if err != nil {
+		return nil, fmt.Errorf("get auth repo error: %s", err.Error())
+	}
+	log.Info("Redis created successful")
+
+	authRepo, err := GetClient(grpcCfg.Addr + ":" + grpcCfg.Port)
+	if err != nil {
+		return nil, fmt.Errorf("get auth repo error: %s", err.Error())
+	}
+
+	core := &Core{
+		log:    log,
+		posts:  redisRepo,
+		client: authRepo,
+	}
+
+	return core, nil
+}
+
 func (c *Core) GetPost(ctx context.Context, id uint64, limit *int, offset *int) (*model.Post, error) {
-	postItem, err := c.posts.GetPost(id, limit, offset)
+	postItem, err := c.posts.GetPost(ctx, id, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("get poster repo: %s", err.Error())
 	}
+
+	//fmt.Println(id, postItem, 2332)
 
 	if postItem.ID == "" {
 		return nil, nil
@@ -125,7 +148,7 @@ func (c *Core) GetCommentsByCommentID(ctx context.Context, id uint64, limit *int
 }
 
 func (c *Core) CreatePost(ctx context.Context, post *model.Post) (bool, error) {
-	result, err := c.posts.CreatePost(post)
+	result, err := c.posts.CreatePost(ctx, post)
 	if err != nil {
 		return false, fmt.Errorf("create poster repo error: %s", err.Error())
 	}
@@ -134,6 +157,34 @@ func (c *Core) CreatePost(ctx context.Context, post *model.Post) (bool, error) {
 }
 
 func (c *Core) CreateComment(ctx context.Context, comment *model.Comment) (bool, error) {
+	var checked bool
+
+	postId, err := strconv.ParseUint(comment.Post.ID, 10, 64)
+	if err != nil {
+		return false, fmt.Errorf("parse user id err: %s", err.Error())
+	}
+
+	parentID, err := strconv.ParseUint(comment.ParentID, 10, 64)
+	if err != nil {
+		return false, fmt.Errorf("parse comment id err: %s", err.Error())
+	}
+
+	if parentID == 0 {
+		checked, err = c.posts.CheckPost(postId)
+		if err != nil {
+			return false, err
+		}
+	} else {
+		checked, err = c.posts.CheckCommentByPost(postId, parentID)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	if !checked {
+		return false, nil
+	}
+
 	result, err := c.posts.CreateComment(comment)
 	if err != nil {
 		return false, fmt.Errorf("create comment repo error: %s", err.Error())

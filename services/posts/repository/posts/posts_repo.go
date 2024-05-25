@@ -1,6 +1,7 @@
 package posts
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -12,11 +13,14 @@ import (
 	"time"
 )
 
+//go:generate mockgen -source=posts_repo.go -destination=../../mocks/repo_mock.go -package=mocks
 type IPostsRepository interface {
-	GetPost(id uint64, limit *int, offset *int) (*model.Post, error)
+	GetPost(ctx context.Context, id uint64, limit *int, offset *int) (*model.Post, error)
 	GetPosts(limit *int, offset *int) ([]*model.Post, error)
-	CreatePost(post *model.Post) (bool, error)
+	CreatePost(ctx context.Context, post *model.Post) (bool, error)
 	CreateComment(comment *model.Comment) (bool, error)
+	CheckPost(id uint64) (bool, error)
+	CheckCommentByPost(postId uint64, parentId uint64) (bool, error)
 	GetCommentsByPostId(id uint64, limit *int, offset *int) ([]*model.Comment, error)
 	GetCommentsCommentID(id uint64, limit *int, offset *int) ([]*model.Comment, error)
 }
@@ -69,7 +73,7 @@ func (r *Repository) pingDb(timer uint32, log *logrus.Logger) error {
 	return fmt.Errorf("sql max pinging error: %s", err.Error())
 }
 
-func (r *Repository) GetPost(id uint64, limit *int, offset *int) (*model.Post, error) {
+func (r *Repository) GetPost(ctx context.Context, id uint64, limit *int, offset *int) (*model.Post, error) {
 	post := &model.Post{}
 	author := &model.User{}
 
@@ -123,10 +127,42 @@ func (r *Repository) GetPosts(limit *int, offset *int) ([]*model.Post, error) {
 	return results, nil
 }
 
-func (r *Repository) CreatePost(post *model.Post) (bool, error) {
+func (r *Repository) CreatePost(ctx context.Context, post *model.Post) (bool, error) {
 	err := r.db.QueryRow("INSERT INTO posts(content, comments_allowed) VALUES ($1, $2) RETURNING id", post.Content, post.AllowComments).Scan(&post.ID)
 	if err != nil {
 		return false, fmt.Errorf("insert post error: %s", err.Error())
+	}
+
+	return true, nil
+}
+
+func (r *Repository) CheckPost(id uint64) (bool, error) {
+	var postId uint64
+
+	err := r.db.QueryRow("SELECT id FROM posts where id = $1", id).Scan(&postId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, fmt.Errorf("check comment error: %s", err.Error())
+	}
+
+	if postId == 0 {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (r *Repository) CheckCommentByPost(postId uint64, parentId uint64) (bool, error) {
+	var id uint64
+
+	err := r.db.QueryRow("SELECT comments.id FROM comments where comments.id = $1 and comments.post_id = $2", parentId, postId).Scan(&id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, fmt.Errorf("check comment error: %s", err.Error())
 	}
 
 	return true, nil

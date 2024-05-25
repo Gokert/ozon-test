@@ -30,17 +30,29 @@ func main() {
 		return
 	}
 
-	psxCfg, err := configs.GetPostsPsxConfig()
+	//psxCfg, err := configs.GetPostsPsxConfig()
+	//if err != nil {
+	//	log.Errorf("Create psx config error: %s", err.Error())
+	//	return
+	//}
+
+	redisCfg, err := configs.GetRedisConfig()
 	if err != nil {
-		log.Errorf("Create psx config error: %s", err.Error())
+		log.Errorf("Create redis config error: %s", err.Error())
 		return
 	}
 
-	core, err := usecase.GetCore(grpcCfg, psxCfg, log)
+	core, err := usecase.GetRedisCore(grpcCfg, redisCfg, log)
 	if err != nil {
 		log.Errorf("Create core error: %s", err.Error())
 		return
 	}
+
+	//core, err := usecase.GetCore(grpcCfg, psxCfg, log)
+	//if err != nil {
+	//	log.Errorf("Create core error: %s", err.Error())
+	//	return
+	//}
 
 	resolver := &graph2.Resolver{
 		Core: core,

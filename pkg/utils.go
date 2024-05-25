@@ -45,10 +45,11 @@ const (
 )
 
 const (
-	CommentsByPostId    = "GetCommentsByPostId"
-	CommentsByCommentId = "GetCommentsByCommentId"
-	GetPost             = "GetPost"
-	CreatePost          = "CreatePost"
-	CreateComment       = "CreateComment"
-	GetPosts            = "GetPosts"
+	CommentsByPostId      = "GetCommentsByPostId"
+	CommentsByCommentId   = "GetCommentsByCommentId"
+	GetPost               = "GetPost"
+	CreatePost            = "CreatePost"
+	CreateComment         = "CreateComment"
+	GetPosts              = "GetPosts"
+	PostOrCommentNotFound = "Post or comment not found"
 )
