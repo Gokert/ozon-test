@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"ozon-test/configs"
 	"ozon-test/configs/logger"
+	"ozon-test/pkg/middleware"
 	graph2 "ozon-test/services/posts/delivery/graph"
 	"ozon-test/services/posts/usecase"
 
@@ -49,7 +50,7 @@ func main() {
 	srv := handler.NewDefaultServer(graph2.NewExecutableSchema(graph2.Config{Resolvers: resolver}))
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
+	http.Handle("/query", middleware.AuthCheck(srv, core, log))
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))

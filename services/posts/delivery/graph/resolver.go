@@ -44,6 +44,7 @@ func (r *Resolver) GetPost(ctx context.Context, id string, limit *int, offset *i
 		return nil, fmt.Errorf(utils.InternalError)
 	}
 
+	httpResponse.SendLog(http.StatusOK, utils.GetPost, timeStart, r.Log)
 	return poster, nil
 }
 
