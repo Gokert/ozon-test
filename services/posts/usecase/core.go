@@ -21,6 +21,9 @@ type ICore interface {
 	CreateComment(ctx context.Context, comment *model.Comment) (bool, error)
 	GetCommentsByPostId(ctx context.Context, id uint64, limit *int, offset *int) ([]*model.Comment, error)
 	GetCommentsByCommentID(ctx context.Context, id uint64, limit *int, offset *int) ([]*model.Comment, error)
+
+	GetUserId(ctx context.Context, sid string) (uint64, error)
+	GetRole(ctx context.Context, userId uint64) (string, error)
 }
 
 type Core struct {
@@ -137,4 +140,21 @@ func (c *Core) CreateComment(ctx context.Context, comment *model.Comment) (bool,
 	}
 
 	return result, nil
+}
+
+func (c *Core) GetUserId(ctx context.Context, sid string) (uint64, error) {
+	response, err := c.client.GetId(ctx, &auth.FindIdRequest{Sid: sid})
+	if err != nil {
+		return 0, fmt.Errorf("get user id err: %w", err)
+	}
+	return response.Value, nil
+}
+
+func (c *Core) GetRole(ctx context.Context, userId uint64) (string, error) {
+	role, err := c.client.GetRole(ctx, &auth.RoleRequest{Id: userId})
+	if err != nil {
+		return "", fmt.Errorf("get role error: %s", err.Error())
+	}
+
+	return role.Role, nil
 }
