@@ -6,6 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"net/http"
 	utils "ozon-test/pkg"
+	"ozon-test/pkg/models"
 	httpResponse "ozon-test/pkg/response"
 	"time"
 )
@@ -45,96 +46,16 @@ func AuthCheck(next http.Handler, core Core, lg *logrus.Logger) http.Handler {
 	})
 }
 
-//func CheckAuth(ctx context.Context, core Core, lg *logrus.Logger) (bool, error) {
-//	session := ctx.Value(UserIDKey)
-//	if session == nil {
-//		return false, nil
-//	}
-//
-//	sid := strconv.FormatUint(session.(uint64), 10)
-//
-
-//
-//	userId, err := core.GetUserId(ctx, sid)
-//	if err != nil {
-//		return false, fmt.Errorf("auth check error: %s", err.Error())
-//	}
-//
-//	key := context.WithValue(ctx, UserIDKey, userId)
-//
-
-//
-//	if userId == 0 {
-//		return false, nil
-//	}
-//
-//	return true, nil
-//}
-
 func MethodCheck(next http.Handler, method string, lg *logrus.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		response := &models.Response{Status: http.StatusMethodNotAllowed, Body: nil}
 		timeNow := time.Now()
 
 		if r.Method != method {
 			httpResponse.SendLog(http.StatusMethodNotAllowed, utils.GetPost, timeNow, lg)
+			httpResponse.SendResponse(w, r, response, timeNow, lg)
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
 }
-
-//
-//func GetRole(next http.Handler, core Core, lg *logrus.Logger) http.Handler {
-//	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//		userId, isAuth := r.Context().Value(UserIDKey).(uint64)
-//		if !isAuth {
-//			next.ServeHTTP(w, r)
-//			return
-//		}
-//
-//		result, err := core.GetRole(r.Context(), userId)
-//		if err != nil {
-//			lg.Errorf("auth check error: %s", err)
-//			next.ServeHTTP(w, r)
-//			return
-//		}
-//
-//		if result != "admin" {
-//			next.ServeHTTP(w, r)
-//			return
-//		}
-//
-//		r = r.WithContext(context.WithValue(r.Context(), UserRoleKey, result))
-//
-//		next.ServeHTTP(w, r)
-//	})
-//}
-//
-//func CheckRole(next http.Handler, core Core, lg *logrus.Logger) http.Handler {
-//	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//		timeNow := time.Now()
-//
-//		userId, isAuth := r.Context().Value(UserIDKey).(uint64)
-//		if !isAuth {
-//			response := &models.Response{Status: http.StatusUnauthorized, Body: nil}
-//			httpResponse.SendResponse(w, r, response, timeNow, lg)
-//			return
-//		}
-//
-//		result, err := core.GetRole(r.Context(), userId)
-//		if err != nil {
-//			lg.Errorf("auth check error: %s", err)
-//			response := &models.Response{Status: http.StatusUnauthorized, Body: nil}
-//			httpResponse.SendResponse(w, r, response, timeNow, lg)
-//			return
-//		}
-//
-//		if result != "admin" {
-//			response := &models.Response{Status: http.StatusForbidden, Body: nil}
-//			httpResponse.SendResponse(w, r, response, timeNow, lg)
-//			return
-//		}
-//
-//		next.ServeHTTP(w, r)
-//	})
-//}

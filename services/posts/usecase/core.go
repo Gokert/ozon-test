@@ -77,7 +77,7 @@ func (c *Core) GetPost(ctx context.Context, id uint64, limit *int, offset *int) 
 		return nil, fmt.Errorf("get poster repo: %s", err.Error())
 	}
 
-	if postItem.ID == "" {
+	if postItem == nil {
 		return nil, nil
 	}
 
