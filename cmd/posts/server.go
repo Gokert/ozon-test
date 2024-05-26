@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"net/http"
 	"ozon-test/configs"
 	"ozon-test/configs/logger"
@@ -24,35 +25,44 @@ func main() {
 		return
 	}
 
+	option := flag.String("database", "postgresql", "выбор БД для записи данных (postgresql | redis)")
+	flag.Parse()
+
 	grpcCfg, err := configs.GetGrpcConfig()
 	if err != nil {
 		log.Errorf("failed to parse grpc configs file: %s", err.Error())
 		return
 	}
 
-	//psxCfg, err := configs.GetPostsPsxConfig()
-	//if err != nil {
-	//	log.Errorf("Create psx config error: %s", err.Error())
-	//	return
-	//}
+	var core *usecase.Core
 
-	redisCfg, err := configs.GetRedisConfig()
-	if err != nil {
-		log.Errorf("Create redis config error: %s", err.Error())
-		return
+	if *option == "postgresql" {
+		psxCfg, err := configs.GetPostsPsxConfig()
+		if err != nil {
+			log.Errorf("Create psx config error: %s", err.Error())
+			return
+		}
+
+		core, err = usecase.GetCore(grpcCfg, psxCfg, log)
+		if err != nil {
+			log.Errorf("Create core error: %s", err.Error())
+			return
+		}
 	}
 
-	core, err := usecase.GetRedisCore(grpcCfg, redisCfg, log)
-	if err != nil {
-		log.Errorf("Create core error: %s", err.Error())
-		return
-	}
+	if *option == "redis" {
+		redisCfg, err := configs.GetRedisConfig()
+		if err != nil {
+			log.Errorf("Create redis config error: %s", err.Error())
+			return
+		}
 
-	//core, err := usecase.GetCore(grpcCfg, psxCfg, log)
-	//if err != nil {
-	//	log.Errorf("Create core error: %s", err.Error())
-	//	return
-	//}
+		core, err = usecase.GetRedisCore(grpcCfg, redisCfg, log)
+		if err != nil {
+			log.Errorf("Create core error: %s", err.Error())
+			return
+		}
+	}
 
 	resolver := &graph2.Resolver{
 		Core: core,
