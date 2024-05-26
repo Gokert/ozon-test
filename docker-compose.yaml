@@ -1,9 +1,16 @@
 version: '3'
 services:
-  redis:
+  redisauth:
     image: "redis:latest"
     ports:
-      - "${REDIS_DOCKER_PORT}:6379"
+      - "${REDIS_AUTH_DOCKER_PORT}:6379"
+    networks:
+      - net
+
+  redisposts:
+    image: "redis:latest"
+    ports:
+      - "${REDIS_POSTS_DOCKER_PORT}:6379"
     networks:
       - net
 
@@ -36,7 +43,7 @@ services:
   nginx:
     image: "nginx:latest"
     ports:
-      - "81:80"
+      - "80:80"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
     depends_on:
@@ -48,31 +55,33 @@ services:
   postsapp:
     build:
       context: .
-      dockerfile: Dockerfile_posts
+      dockerfile: scripts/deploy/Dockerfile_posts
     ports:
       - "${POSTS_APP_PORT}:${POSTS_APP_PORT}"
     depends_on:
-      - redis
+      - redisauth
+      - redisposts
       - authpsx
       - postspsx
     env_file:
-      ./.env
+      .env
     networks:
       - net
 
   authapp:
     build:
       context: .
-      dockerfile: Dockerfile_auth
+      dockerfile: scripts/deploy/Dockerfile_auth
     ports:
       - "${AUTH_APP_PORT}:${AUTH_APP_PORT}"
       - "${AUTH_GRPC_PORT}:${AUTH_GRPC_PORT}"
     depends_on:
-      - redis
+      - redisauth
+      - redisposts
       - authpsx
       - postspsx
     env_file:
-      ./.env
+      .env
     networks:
       - net
 

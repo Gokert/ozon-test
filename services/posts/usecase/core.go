@@ -13,19 +13,6 @@ import (
 	"strconv"
 )
 
-//go:generate mockgen -source=core.go -destination=../mocks/core_mock.go -package=mocks
-type ICore interface {
-	GetPost(ctx context.Context, id uint64, limit *int, offset *int) (*model.Post, error)
-	GetPosts(ctx context.Context, limit *int, offset *int) ([]*model.Post, error)
-	CreatePost(ctx context.Context, post *model.Post) (bool, error)
-	CreateComment(ctx context.Context, comment *model.Comment) (bool, error)
-	GetCommentsByPostId(ctx context.Context, id uint64, limit *int, offset *int) ([]*model.Comment, error)
-	GetCommentsByCommentID(ctx context.Context, id uint64, limit *int, offset *int) ([]*model.Comment, error)
-
-	GetUserId(ctx context.Context, sid string) (uint64, error)
-	GetRole(ctx context.Context, userId uint64) (string, error)
-}
-
 type Core struct {
 	log    *logrus.Logger
 	posts  posts_repo.IPostsRepository
@@ -33,7 +20,7 @@ type Core struct {
 }
 
 func GetClient(address string) (auth.AuthorizationClient, error) {
-	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("grpc connect err: %w", err)
 	}
@@ -42,12 +29,12 @@ func GetClient(address string) (auth.AuthorizationClient, error) {
 	return client, nil
 }
 
-func GetCore(grpcCfg *configs.GrpcConfig, psxCfg *configs.DbPsxConfig, log *logrus.Logger) (*Core, error) {
+func GetPostgresCore(grpcCfg *configs.GrpcConfig, psxCfg *configs.DbPsxConfig, log *logrus.Logger) (*Core, error) {
 	repo, err := posts_repo.GetPsxRepo(psxCfg, log)
 	if err != nil {
-		return nil, fmt.Errorf("get psx error error: %s", err.Error())
+		return nil, fmt.Errorf("get postgres repo error: %s", err.Error())
 	}
-	log.Info("Psx created successful")
+	log.Info("Postgresql created successful")
 
 	authRepo, err := GetClient(grpcCfg.Addr + ":" + grpcCfg.Port)
 	if err != nil {
@@ -63,8 +50,29 @@ func GetCore(grpcCfg *configs.GrpcConfig, psxCfg *configs.DbPsxConfig, log *logr
 	return core, nil
 }
 
+func GetRedisCore(grpcCfg *configs.GrpcConfig, redisCfg *configs.DbRedisCfg, log *logrus.Logger) (*Core, error) {
+	redisRepo, err := posts_repo.GetRedisRepo(redisCfg)
+	if err != nil {
+		return nil, fmt.Errorf("get auth repo error: %s", err.Error())
+	}
+	log.Info("Redis created successful")
+
+	authRepo, err := GetClient(grpcCfg.Addr + ":" + grpcCfg.Port)
+	if err != nil {
+		return nil, fmt.Errorf("get auth repo error: %s", err.Error())
+	}
+
+	core := &Core{
+		log:    log,
+		posts:  redisRepo,
+		client: authRepo,
+	}
+
+	return core, nil
+}
+
 func (c *Core) GetPost(ctx context.Context, id uint64, limit *int, offset *int) (*model.Post, error) {
-	postItem, err := c.posts.GetPost(id, limit, offset)
+	postItem, err := c.posts.GetPost(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("get poster repo: %s", err.Error())
 	}
@@ -73,7 +81,7 @@ func (c *Core) GetPost(ctx context.Context, id uint64, limit *int, offset *int) 
 		return nil, nil
 	}
 
-	userId, err := strconv.ParseUint(postItem.ID, 10, 64)
+	userId, err := strconv.ParseUint(postItem.Author.ID, 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("parse user id err: %s", err.Error())
 	}
@@ -83,49 +91,104 @@ func (c *Core) GetPost(ctx context.Context, id uint64, limit *int, offset *int) 
 		return nil, fmt.Errorf("client request error: %s", err.Error())
 	}
 
+	if res == nil {
+		return nil, nil
+	}
+
 	postItem.Author.Login = res.Name
+
+	comments, err := c.posts.GetCommentsByPostId(ctx, id, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("get post comments error: %s", err.Error())
+	}
+
+	postItem.Comments = comments
+
+	for _, comment := range comments {
+		formatUint, _ := strconv.ParseUint(comment.Author.ID, 10, 64)
+
+		res, err := c.client.GetUserName(ctx, &auth.UserItemRequest{Id: formatUint})
+		if err != nil {
+			return nil, fmt.Errorf("client request error: %s", err.Error())
+		}
+
+		comment.Author.Login = res.Name
+	}
 
 	return postItem, nil
 }
 
 func (c *Core) GetPosts(ctx context.Context, limit *int, offset *int) ([]*model.Post, error) {
-	posts, err := c.posts.GetPosts(limit, offset)
+	posts, err := c.posts.GetPosts(ctx, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("get posts repo error: %s", err.Error())
+	}
+
+	for _, post := range posts {
+		formatUint, _ := strconv.ParseUint(post.Author.ID, 10, 64)
+
+		res, err := c.client.GetUserName(ctx, &auth.UserItemRequest{Id: formatUint})
+		if err != nil {
+			return nil, fmt.Errorf("client request error: %s", err.Error())
+		}
+
+		post.Author.Login = res.Name
 	}
 
 	return posts, nil
 }
 
 func (c *Core) GetCommentsByPostId(ctx context.Context, id uint64, limit *int, offset *int) ([]*model.Comment, error) {
-	comments, err := c.posts.GetCommentsByPostId(id, limit, offset)
+	have, err := c.posts.CheckPost(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("check post error: %s", err.Error())
+	}
+
+	if !have {
+		return nil, nil
+	}
+
+	comments, err := c.posts.GetCommentsByPostId(ctx, id, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("get comments repo error: %s", err.Error())
 	}
 
-	//if len(comments) == 0 {
-	//	return nil, nil
-	//}
+	for _, comment := range comments {
+		formatUint, _ := strconv.ParseUint(comment.Author.ID, 10, 64)
 
-	//res, err := c.client.GetUserName(ctx, &auth.UserItemRequest{Id: userId})
-	//if err != nil {
-	//	return nil, fmt.Errorf("client request error: %s", err.Error())
-	//}
+		res, err := c.client.GetUserName(ctx, &auth.UserItemRequest{Id: formatUint})
+		if err != nil {
+			return nil, fmt.Errorf("client request error: %s", err.Error())
+		}
+
+		comment.Author.Login = res.Name
+	}
 
 	return comments, nil
 }
 
 func (c *Core) GetCommentsByCommentID(ctx context.Context, id uint64, limit *int, offset *int) ([]*model.Comment, error) {
-	comments, err := c.posts.GetCommentsCommentID(id, limit, offset)
+	comments, err := c.posts.GetCommentsCommentID(ctx, id, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("get comments repo error: %s", err.Error())
+	}
+
+	for _, comment := range comments {
+		formatUint, _ := strconv.ParseUint(comment.Author.ID, 10, 64)
+
+		res, err := c.client.GetUserName(ctx, &auth.UserItemRequest{Id: formatUint})
+		if err != nil {
+			return nil, fmt.Errorf("client request error: %s", err.Error())
+		}
+
+		comment.Author.Login = res.Name
 	}
 
 	return comments, nil
 }
 
 func (c *Core) CreatePost(ctx context.Context, post *model.Post) (bool, error) {
-	result, err := c.posts.CreatePost(post)
+	result, err := c.posts.CreatePost(ctx, post)
 	if err != nil {
 		return false, fmt.Errorf("create poster repo error: %s", err.Error())
 	}
@@ -134,7 +197,35 @@ func (c *Core) CreatePost(ctx context.Context, post *model.Post) (bool, error) {
 }
 
 func (c *Core) CreateComment(ctx context.Context, comment *model.Comment) (bool, error) {
-	result, err := c.posts.CreateComment(comment)
+	var checked bool
+
+	postId, err := strconv.ParseUint(comment.Post.ID, 10, 64)
+	if err != nil {
+		return false, fmt.Errorf("parse user id err: %s", err.Error())
+	}
+
+	parentID, err := strconv.ParseUint(comment.ParentID, 10, 64)
+	if err != nil {
+		return false, fmt.Errorf("parse comment id err: %s", err.Error())
+	}
+
+	checked, err = c.posts.CheckPost(ctx, postId)
+	if err != nil {
+		return false, fmt.Errorf("check post error: %s", err.Error())
+	}
+
+	if parentID != 0 {
+		checked, err = c.posts.CheckComment(ctx, parentID)
+		if err != nil {
+			return false, fmt.Errorf("check comment error: %s", err.Error())
+		}
+	}
+
+	if !checked {
+		return false, nil
+	}
+
+	result, err := c.posts.CreateComment(ctx, comment)
 	if err != nil {
 		return false, fmt.Errorf("create comment repo error: %s", err.Error())
 	}

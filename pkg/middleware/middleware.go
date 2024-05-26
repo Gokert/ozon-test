@@ -6,7 +6,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"net/http"
 	utils "ozon-test/pkg"
-	"ozon-test/pkg/models"
 	httpResponse "ozon-test/pkg/response"
 	"time"
 )
@@ -23,25 +22,22 @@ type Core interface {
 
 func AuthCheck(next http.Handler, core Core, lg *logrus.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		response := &models.Response{Status: http.StatusUnauthorized, Body: nil}
-		timeNow := time.Now()
-
 		session, err := r.Cookie("session_id")
 		if errors.Is(err, http.ErrNoCookie) {
-			httpResponse.SendResponse(w, r, response, timeNow, lg)
+			next.ServeHTTP(w, r)
 			return
 		}
 
 		userId, err := core.GetUserId(r.Context(), session.Value)
 		if err != nil {
 			lg.Errorf("auth check error: %s", err.Error())
-			httpResponse.SendResponse(w, r, response, timeNow, lg)
+			next.ServeHTTP(w, r)
 			return
 		}
 
 		r = r.WithContext(context.WithValue(r.Context(), UserIDKey, userId))
 		if userId == 0 {
-			httpResponse.SendResponse(w, r, response, timeNow, lg)
+			next.ServeHTTP(w, r)
 			return
 		}
 
@@ -57,7 +53,7 @@ func AuthCheck(next http.Handler, core Core, lg *logrus.Logger) http.Handler {
 //
 //	sid := strconv.FormatUint(session.(uint64), 10)
 //
-//	//fmt.Println(sid, contextKey, 111)
+
 //
 //	userId, err := core.GetUserId(ctx, sid)
 //	if err != nil {
@@ -66,7 +62,7 @@ func AuthCheck(next http.Handler, core Core, lg *logrus.Logger) http.Handler {
 //
 //	key := context.WithValue(ctx, UserIDKey, userId)
 //
-//	fmt.Println(key, 222)
+
 //
 //	if userId == 0 {
 //		return false, nil

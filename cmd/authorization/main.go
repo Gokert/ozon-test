@@ -26,11 +26,11 @@ func main() {
 
 	psxCfg, err := configs.GetAuthPsxConfig()
 	if err != nil {
-		log.Errorf("Create psx config error: %s", err.Error())
+		log.Errorf("Create postgresql config error: %s", err.Error())
 		return
 	}
 
-	redisCfg, err := configs.GetRedisConfig()
+	redisCfg, err := configs.GetRedisAuthConfig()
 	if err != nil {
 		log.Errorf("Create redis config error: %s", err.Error())
 		return

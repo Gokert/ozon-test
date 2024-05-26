@@ -6,6 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"net/http"
 	utils "ozon-test/pkg"
+	"ozon-test/pkg/middleware"
 	httpResponse "ozon-test/pkg/response"
 	"ozon-test/services/posts/delivery/graph/model"
 	"ozon-test/services/posts/usecase"
@@ -119,9 +120,21 @@ func (r *Resolver) GetCommentsByCommentID(ctx context.Context, id string, limit 
 
 func (r *Resolver) CreatePost(ctx context.Context, content string, allowComments bool) (*model.Post, error) {
 	timeStart := time.Now()
+
+	session := ctx.Value(middleware.UserIDKey)
+	if session == nil {
+		return nil, fmt.Errorf(utils.SessionNull)
+	}
+
+	id := strconv.FormatUint(session.(uint64), 10)
+
 	post := &model.Post{
 		Content:       content,
 		AllowComments: &allowComments,
+		Author: &model.User{
+			ID:    id,
+			Login: "",
+		},
 	}
 
 	_, err := r.Core.CreatePost(ctx, post)
@@ -138,6 +151,21 @@ func (r *Resolver) CreatePost(ctx context.Context, content string, allowComments
 func (r *Resolver) CreateComment(ctx context.Context, postID string, content string, parentID *string) (*model.Comment, error) {
 	timeStart := time.Now()
 
+	if parentID == nil {
+		return nil, fmt.Errorf(utils.ParentIdRequired)
+	}
+
+	session := ctx.Value(middleware.UserIDKey)
+	if session == nil {
+		return nil, fmt.Errorf(utils.SessionNull)
+	}
+
+	result := utils.ValidatorComment(content)
+	if !result {
+		httpResponse.SendLog(http.StatusBadRequest, utils.CreateComment, timeStart, r.Log)
+		return nil, fmt.Errorf(utils.CommentIsTooBig)
+	}
+
 	comment := &model.Comment{
 		Content: content,
 		Post: &model.Post{
@@ -149,11 +177,16 @@ func (r *Resolver) CreateComment(ctx context.Context, postID string, content str
 		ParentID: *parentID,
 	}
 
-	_, err := r.Core.CreateComment(ctx, comment)
+	result, err := r.Core.CreateComment(ctx, comment)
 	if err != nil {
 		r.Log.Errorf("create comment error: %s", err)
 		httpResponse.SendLog(http.StatusInternalServerError, utils.CreateComment, timeStart, r.Log)
 		return nil, fmt.Errorf(utils.InternalError)
+	}
+
+	if !result {
+		httpResponse.SendLog(http.StatusNotFound, utils.CreateComment, timeStart, r.Log)
+		return nil, fmt.Errorf(utils.PostOrCommentNotFound)
 	}
 
 	httpResponse.SendLog(http.StatusOK, utils.CreatePost, timeStart, r.Log)
