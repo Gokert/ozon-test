@@ -75,7 +75,7 @@ func (s *server) GetId(ctx context.Context, req *proto.FindIdRequest) (*proto.Fi
 		return nil, fmt.Errorf("get user login error: %s", err.Error())
 	}
 
-	id, err := s.users.GetUserId(login)
+	id, err := s.users.GetUserId(ctx, login)
 	if err != nil {
 		return nil, fmt.Errorf("get user id error: %s", err.Error())
 	}
@@ -94,7 +94,7 @@ func (s *server) GetAuthorizationStatus(ctx context.Context, req *proto.Authoriz
 }
 
 func (s *server) GetRole(ctx context.Context, req *proto.RoleRequest) (*proto.RoleResponse, error) {
-	role, err := s.users.GetRole(req.Id)
+	role, err := s.users.GetRole(ctx, req.Id)
 	if err != nil {
 		return nil, fmt.Errorf("check role error: %s", err.Error())
 	}
@@ -103,7 +103,7 @@ func (s *server) GetRole(ctx context.Context, req *proto.RoleRequest) (*proto.Ro
 }
 
 func (s *server) GetUserName(ctx context.Context, req *proto.UserItemRequest) (*proto.UserItemResponse, error) {
-	name, err := s.users.GetUserName(req.Id)
+	name, err := s.users.GetUserName(ctx, req.Id)
 	if err != nil {
 		return nil, fmt.Errorf("get login error: %s", err.Error())
 	}

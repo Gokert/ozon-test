@@ -64,7 +64,7 @@ func (a *Api) Signin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, found, err := a.core.FindUserAccount(request.Login, request.Password)
+	_, found, err := a.core.FindUserAccount(r.Context(), request.Login, request.Password)
 	if err != nil {
 		a.log.Error("Find user account error: ", err.Error())
 		response.Status = http.StatusInternalServerError
@@ -110,7 +110,7 @@ func (a *Api) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	found, err := a.core.FindUserByLogin(request.Login)
+	found, err := a.core.FindUserByLogin(r.Context(), request.Login)
 	if err != nil {
 		a.log.Errorf("Find user by login error: %s", err.Error())
 		response.Status = http.StatusInternalServerError
@@ -124,7 +124,7 @@ func (a *Api) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = a.core.CreateUserAccount(request.Login, request.Password)
+	err = a.core.CreateUserAccount(r.Context(), request.Login, request.Password)
 	if err != nil {
 		a.log.Error("Create user error: ", err.Error())
 		response.Status = http.StatusBadRequest

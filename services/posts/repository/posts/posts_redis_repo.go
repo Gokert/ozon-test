@@ -45,13 +45,11 @@ func GetRedisRepo(cfg *configs.DbRedisCfg) (IPostRepo, error) {
 
 func (r RedisRepo) GetPosts(ctx context.Context, limit, offset *int) ([]*model.Post, error) {
 	var posts []*model.Post
-
 	var cursor uint64
 	var keys []string
 	var err error
 	var count int
 
-	// Вычисляем начальный и конечный индексы для пагинации
 	start := *offset
 	end := *offset + *limit - 1
 
@@ -75,17 +73,12 @@ func (r RedisRepo) GetPosts(ctx context.Context, limit, offset *int) ([]*model.P
 			if err != nil {
 				return nil, fmt.Errorf("get post error: %s", err.Error())
 			}
+			numStr := key[len("post:"):]
 
 			boolen, err := strconv.ParseBool(res["comments_allowed"])
 			if err != nil {
 				return nil, fmt.Errorf("parse comments_allowed error: %s", err.Error())
 			}
-
-			numStr := key[len("post:"):]
-			//num, err := strconv.ParseInt(numStr, 10, 64)
-			//if err != nil {
-			//	return nil, fmt.Errorf("parse post error: %s", err.Error())
-			//}
 
 			post := &model.Post{
 				ID:            numStr,
@@ -201,11 +194,9 @@ func (r RedisRepo) GetCommentsByPostId(ctx context.Context, id uint64, limit *in
 			if err != nil {
 				return nil, fmt.Errorf("get comment error: %s", err.Error())
 			}
-
 			numStr := key[len("comment:"):]
-			postId := strconv.FormatUint(id, 10)
 
-			if res["post_id"] != postId {
+			if res["post_id"] != strconv.FormatUint(id, 10) {
 				continue
 			}
 
@@ -265,7 +256,6 @@ func (r RedisRepo) GetCommentsCommentID(ctx context.Context, id uint64, limit *i
 			if err != nil {
 				return nil, fmt.Errorf("get comment error: %s", err.Error())
 			}
-
 			numStr := key[len("comment:"):]
 
 			if res["parent_id"] != strconv.FormatUint(id, 10) {
