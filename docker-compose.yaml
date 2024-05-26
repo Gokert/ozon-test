@@ -55,7 +55,7 @@ services:
   postsapp:
     build:
       context: .
-      dockerfile: Dockerfile_posts
+      dockerfile: scripts/deploy/Dockerfile_posts
     ports:
       - "${POSTS_APP_PORT}:${POSTS_APP_PORT}"
     depends_on:
@@ -64,14 +64,14 @@ services:
       - authpsx
       - postspsx
     env_file:
-      ./.env
+      .env
     networks:
       - net
 
   authapp:
     build:
       context: .
-      dockerfile: Dockerfile_auth
+      dockerfile: scripts/deploy/Dockerfile_auth
     ports:
       - "${AUTH_APP_PORT}:${AUTH_APP_PORT}"
       - "${AUTH_GRPC_PORT}:${AUTH_GRPC_PORT}"
@@ -81,7 +81,7 @@ services:
       - authpsx
       - postspsx
     env_file:
-      ./.env
+      .env
     networks:
       - net
 

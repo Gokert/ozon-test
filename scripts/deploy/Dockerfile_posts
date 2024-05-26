@@ -1,8 +1,8 @@
 FROM golang:1.21-alpine AS builder
 WORKDIR /build
-COPY . .
+COPY ../.. .
 
 RUN go build -o postsApp ./cmd/posts/server.go
 
-CMD ./postsApp
+CMD ./postsApp -database $DATABASE_TYPE
 

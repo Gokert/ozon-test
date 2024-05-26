@@ -34,7 +34,8 @@ func main() {
 		return
 	}
 
-	if *option == "postgresql" {
+	switch *option {
+	case "postgresql":
 		psxCfg, err := configs.GetPostsPsxConfig()
 		if err != nil {
 			log.Errorf("Create psx config error: %s", err.Error())
@@ -46,9 +47,7 @@ func main() {
 			log.Errorf("Create core error: %s", err.Error())
 			return
 		}
-	}
-
-	if *option == "redis" {
+	case "redis":
 		redisCfg, err := configs.GetRedisPostsConfig()
 		if err != nil {
 			log.Errorf("Create redis config error: %s", err.Error())
@@ -60,6 +59,9 @@ func main() {
 			log.Errorf("Create core error: %s", err.Error())
 			return
 		}
+	default:
+		log.Errorf("-database=%s is invalid", *option)
+		return
 	}
 
 	resolver := &graph2.Resolver{
