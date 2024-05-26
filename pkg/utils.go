@@ -42,6 +42,8 @@ const (
 	BadRequest       = "Bad Request"
 	ConvertedIdError = "Converted id error"
 	PaginatorError   = "limit or offset exceeded"
+	SessionNull      = "Session is null"
+	ParentIdRequired = "parentID is required"
 )
 
 const (

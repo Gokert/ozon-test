@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"net/http"
+	"os"
 	"ozon-test/configs"
 	"ozon-test/configs/logger"
 	"ozon-test/pkg/middleware"
@@ -13,10 +14,8 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 )
 
-const defaultPort = "8080"
-
 func main() {
-	port := defaultPort
+	var core *usecase.Core
 
 	log := logger.GetLogger()
 	err := configs.InitEnv()
@@ -25,6 +24,7 @@ func main() {
 		return
 	}
 
+	port := os.Getenv("POSTS_APP_PORT")
 	option := flag.String("database", "postgresql", "выбор БД для записи данных (postgresql | redis)")
 	flag.Parse()
 
@@ -34,8 +34,6 @@ func main() {
 		return
 	}
 
-	var core *usecase.Core
-
 	if *option == "postgresql" {
 		psxCfg, err := configs.GetPostsPsxConfig()
 		if err != nil {
@@ -43,7 +41,7 @@ func main() {
 			return
 		}
 
-		core, err = usecase.GetCore(grpcCfg, psxCfg, log)
+		core, err = usecase.GetPostgresCore(grpcCfg, psxCfg, log)
 		if err != nil {
 			log.Errorf("Create core error: %s", err.Error())
 			return
@@ -71,9 +69,9 @@ func main() {
 
 	srv := handler.NewDefaultServer(graph2.NewExecutableSchema(graph2.Config{Resolvers: resolver}))
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", middleware.AuthCheck(srv, core, log))
+	http.Handle("/", playground.Handler("GraphQL playground", "/api/v1/query"))
+	http.Handle("/api/v1/query", middleware.AuthCheck(srv, core, log))
 
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
+	log.Printf("Server Post with GraphQL running on %s", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }

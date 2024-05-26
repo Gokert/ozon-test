@@ -26,7 +26,7 @@ func main() {
 
 	psxCfg, err := configs.GetAuthPsxConfig()
 	if err != nil {
-		log.Errorf("Create psx config error: %s", err.Error())
+		log.Errorf("Create postgresql config error: %s", err.Error())
 		return
 	}
 

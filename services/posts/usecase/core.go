@@ -13,19 +13,6 @@ import (
 	"strconv"
 )
 
-//go:generate mockgen -source=core.go -destination=../mocks/core_mock.go -package=mocks
-type ICore interface {
-	GetPost(ctx context.Context, id uint64, limit *int, offset *int) (*model.Post, error)
-	GetPosts(ctx context.Context, limit *int, offset *int) ([]*model.Post, error)
-	CreatePost(ctx context.Context, post *model.Post) (bool, error)
-	CreateComment(ctx context.Context, comment *model.Comment) (bool, error)
-	GetCommentsByPostId(ctx context.Context, id uint64, limit *int, offset *int) ([]*model.Comment, error)
-	GetCommentsByCommentID(ctx context.Context, id uint64, limit *int, offset *int) ([]*model.Comment, error)
-
-	GetUserId(ctx context.Context, sid string) (uint64, error)
-	GetRole(ctx context.Context, userId uint64) (string, error)
-}
-
 type Core struct {
 	log    *logrus.Logger
 	posts  posts_repo.IPostsRepository
@@ -42,12 +29,12 @@ func GetClient(address string) (auth.AuthorizationClient, error) {
 	return client, nil
 }
 
-func GetCore(grpcCfg *configs.GrpcConfig, psxCfg *configs.DbPsxConfig, log *logrus.Logger) (*Core, error) {
+func GetPostgresCore(grpcCfg *configs.GrpcConfig, psxCfg *configs.DbPsxConfig, log *logrus.Logger) (*Core, error) {
 	repo, err := posts_repo.GetPsxRepo(psxCfg, log)
 	if err != nil {
-		return nil, fmt.Errorf("get psx error error: %s", err.Error())
+		return nil, fmt.Errorf("get postgres repo error: %s", err.Error())
 	}
-	log.Info("Psx created successful")
+	log.Info("Postgresql created successful")
 
 	authRepo, err := GetClient(grpcCfg.Addr + ":" + grpcCfg.Port)
 	if err != nil {
@@ -224,13 +211,13 @@ func (c *Core) CreateComment(ctx context.Context, comment *model.Comment) (bool,
 
 	checked, err = c.posts.CheckPost(ctx, postId)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("check post error: %s", err.Error())
 	}
 
 	if parentID != 0 {
 		checked, err = c.posts.CheckComment(ctx, parentID)
 		if err != nil {
-			return false, err
+			return false, fmt.Errorf("check comment error: %s", err.Error())
 		}
 	}
 

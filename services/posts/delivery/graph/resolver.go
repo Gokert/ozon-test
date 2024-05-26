@@ -123,7 +123,7 @@ func (r *Resolver) CreatePost(ctx context.Context, content string, allowComments
 
 	session := ctx.Value(middleware.UserIDKey)
 	if session == nil {
-		return nil, fmt.Errorf("session is nil")
+		return nil, fmt.Errorf(utils.SessionNull)
 	}
 
 	id := strconv.FormatUint(session.(uint64), 10)
@@ -152,12 +152,12 @@ func (r *Resolver) CreateComment(ctx context.Context, postID string, content str
 	timeStart := time.Now()
 
 	if parentID == nil {
-		return nil, fmt.Errorf("parentID is required")
+		return nil, fmt.Errorf(utils.ParentIdRequired)
 	}
 
 	session := ctx.Value(middleware.UserIDKey)
 	if session == nil {
-		return nil, fmt.Errorf("session is nil")
+		return nil, fmt.Errorf(utils.SessionNull)
 	}
 
 	comment := &model.Comment{
