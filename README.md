@@ -55,8 +55,8 @@ Api отвечает за обработку запросов, usecase за би
 Авторизация <br/>
 ![img.png](images/img_0.png)
 
-##### /signup <br/>
-Регистрация
+##### /signup 
+Регистрация <br/>
 ![img_1.png](images/img_01.png)
 
 ##### /authcheck
