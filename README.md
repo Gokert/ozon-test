@@ -45,10 +45,10 @@ Api отвечает за обработку запросов, usecase за би
  * Хранение постов и комментариев может быть как в Redis (in-memory), так и Postgresql.
 
 ### Схема проекта
-![img_1.png](images/img_01.png)
+![img_0.png](images/img_7.png)
 
 ### Схема БД
-![img.png](images/img_0.png)
+![img.png](images/img_8.png)
 
 ### Примеры запросов для сервиса авторизации.
 ##### /signin
