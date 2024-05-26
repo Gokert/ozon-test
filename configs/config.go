@@ -113,15 +113,29 @@ func GetGrpcConfig() (*GrpcConfig, error) {
 	return cfg, nil
 }
 
-func GetRedisConfig() (*DbRedisCfg, error) {
+func GetRedisAuthConfig() (*DbRedisCfg, error) {
 	v := viper.GetViper()
 	v.AutomaticEnv()
 
 	cfg := &DbRedisCfg{
-		Host:     v.GetString("REDIS_ADDR"),
-		Password: v.GetString("REDIS_PASSWORD"),
-		DbNumber: v.GetInt("REDIS_DB"),
-		Timer:    v.GetInt("REDIS_TIMER"),
+		Host:     v.GetString("REDIS_AUTH_ADDR"),
+		Password: v.GetString("REDIS_AUTH_PASSWORD"),
+		DbNumber: v.GetInt("REDIS_AUTH_DB"),
+		Timer:    v.GetInt("REDIS_AUTH_TIMER"),
+	}
+
+	return cfg, nil
+}
+
+func GetRedisPostsConfig() (*DbRedisCfg, error) {
+	v := viper.GetViper()
+	v.AutomaticEnv()
+
+	cfg := &DbRedisCfg{
+		Host:     v.GetString("REDIS_POSTS_ADDR"),
+		Password: v.GetString("REDIS_POSTS_PASSWORD"),
+		DbNumber: v.GetInt("REDIS_POSTS_DB"),
+		Timer:    v.GetInt("REDIS_POSTS_TIMER"),
 	}
 
 	return cfg, nil

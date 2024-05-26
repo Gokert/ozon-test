@@ -49,7 +49,7 @@ func main() {
 	}
 
 	if *option == "redis" {
-		redisCfg, err := configs.GetRedisConfig()
+		redisCfg, err := configs.GetRedisPostsConfig()
 		if err != nil {
 			log.Errorf("Create redis config error: %s", err.Error())
 			return
