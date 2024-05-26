@@ -69,8 +69,8 @@ func main() {
 
 	srv := handler.NewDefaultServer(graph2.NewExecutableSchema(graph2.Config{Resolvers: resolver}))
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/api/v1/query"))
-	http.Handle("/api/v1/query", middleware.AuthCheck(srv, core, log))
+	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	http.Handle("/query", middleware.AuthCheck(srv, core, log))
 
 	log.Printf("Server Post with GraphQL running on %s", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))

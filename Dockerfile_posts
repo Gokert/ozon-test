@@ -2,7 +2,7 @@ FROM golang:1.21-alpine AS builder
 WORKDIR /build
 COPY . .
 
-RUN go build -o postsApp ./cmd/posts/main.go
+RUN go build -o postsApp ./cmd/posts/server.go
 
 CMD ./postsApp
 

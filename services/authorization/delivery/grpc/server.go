@@ -30,7 +30,7 @@ func NewServer(l *logrus.Logger) (*authGrpc, error) {
 		return nil, fmt.Errorf("get auth psx config error: %s", err.Error())
 	}
 
-	cfgSession, err := configs.GetRedisConfig()
+	cfgSession, err := configs.GetRedisAuthConfig()
 	if err != nil {
 		return nil, fmt.Errorf("get config sessions error: %s", err.Error())
 	}

@@ -1,13 +1,13 @@
 version: '3'
 services:
-  redisAuth:
+  redisauth:
     image: "redis:latest"
     ports:
       - "${REDIS_AUTH_DOCKER_PORT}:6379"
     networks:
       - net
 
-  redisPosts:
+  redisposts:
     image: "redis:latest"
     ports:
       - "${REDIS_POSTS_DOCKER_PORT}:6379"
@@ -43,7 +43,7 @@ services:
   nginx:
     image: "nginx:latest"
     ports:
-      - "81:80"
+      - "80:80"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
     depends_on:
@@ -59,8 +59,8 @@ services:
     ports:
       - "${POSTS_APP_PORT}:${POSTS_APP_PORT}"
     depends_on:
-      - redisAuth
-      - redisPosts
+      - redisauth
+      - redisposts
       - authpsx
       - postspsx
     env_file:
@@ -76,8 +76,8 @@ services:
       - "${AUTH_APP_PORT}:${AUTH_APP_PORT}"
       - "${AUTH_GRPC_PORT}:${AUTH_GRPC_PORT}"
     depends_on:
-      - redisAuth
-      - redisPosts
+      - redisauth
+      - redisposts
       - authpsx
       - postspsx
     env_file:

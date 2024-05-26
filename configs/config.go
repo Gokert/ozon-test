@@ -33,10 +33,10 @@ type GrpcConfig struct {
 
 func InitEnv() error {
 	envMap := map[string]string{
-		"REDIS_ADDR":     "127.0.0.1:6379",
-		"AUTH_PSX_HOST":  "127.0.0.1",
-		"POSTS_PSX_HOST": "127.0.0.1",
-		"AUTH_GRPC_ADDR": "127.0.0.1",
+		"REDIS_AUTH_ADDR": "127.0.0.1:6379",
+		"AUTH_PSX_HOST":   "127.0.0.1",
+		"POSTS_PSX_HOST":  "127.0.0.1",
+		"AUTH_GRPC_ADDR":  "127.0.0.1",
 	}
 
 	for key, defValue := range envMap {
