@@ -23,11 +23,7 @@ func RandStringRunes(seed int) string {
 }
 
 func ValidatorComment(text string) bool {
-	runeCount := utf8.RuneCountInString(text)
-	if runeCount < MaxTextComment {
-		return true
-	}
-	return false
+	return utf8.RuneCountInString(text) < MaxTextComment
 }
 
 const (
@@ -44,6 +40,7 @@ const (
 	PaginatorError   = "limit or offset exceeded"
 	SessionNull      = "Session is null"
 	ParentIdRequired = "parentID is required"
+	CommentIsTooBig  = "Comment is too big"
 )
 
 const (

@@ -20,7 +20,7 @@ type Core struct {
 }
 
 func GetClient(address string) (auth.AuthorizationClient, error) {
-	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("grpc connect err: %w", err)
 	}
@@ -144,7 +144,7 @@ func (c *Core) GetCommentsByPostId(ctx context.Context, id uint64, limit *int, o
 		return nil, fmt.Errorf("check post error: %s", err.Error())
 	}
 
-	if have == false {
+	if !have {
 		return nil, nil
 	}
 

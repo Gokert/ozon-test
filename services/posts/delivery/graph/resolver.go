@@ -160,6 +160,12 @@ func (r *Resolver) CreateComment(ctx context.Context, postID string, content str
 		return nil, fmt.Errorf(utils.SessionNull)
 	}
 
+	result := utils.ValidatorComment(content)
+	if !result {
+		httpResponse.SendLog(http.StatusBadRequest, utils.CreateComment, timeStart, r.Log)
+		return nil, fmt.Errorf(utils.CommentIsTooBig)
+	}
+
 	comment := &model.Comment{
 		Content: content,
 		Post: &model.Post{
@@ -178,7 +184,7 @@ func (r *Resolver) CreateComment(ctx context.Context, postID string, content str
 		return nil, fmt.Errorf(utils.InternalError)
 	}
 
-	if result == false {
+	if !result {
 		httpResponse.SendLog(http.StatusNotFound, utils.CreateComment, timeStart, r.Log)
 		return nil, fmt.Errorf(utils.PostOrCommentNotFound)
 	}
