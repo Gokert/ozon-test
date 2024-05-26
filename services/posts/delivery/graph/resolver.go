@@ -126,9 +126,15 @@ func (r *Resolver) CreatePost(ctx context.Context, content string, allowComments
 		return nil, fmt.Errorf("session is nil")
 	}
 
+	id := strconv.FormatUint(session.(uint64), 10)
+
 	post := &model.Post{
 		Content:       content,
 		AllowComments: &allowComments,
+		Author: &model.User{
+			ID:    id,
+			Login: "",
+		},
 	}
 
 	_, err := r.Core.CreatePost(ctx, post)
@@ -171,8 +177,6 @@ func (r *Resolver) CreateComment(ctx context.Context, postID string, content str
 		httpResponse.SendLog(http.StatusInternalServerError, utils.CreateComment, timeStart, r.Log)
 		return nil, fmt.Errorf(utils.InternalError)
 	}
-
-	r.Log.Info(result, err)
 
 	if result == false {
 		httpResponse.SendLog(http.StatusNotFound, utils.CreateComment, timeStart, r.Log)

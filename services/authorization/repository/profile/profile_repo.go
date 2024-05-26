@@ -9,6 +9,7 @@ import (
 	"ozon-test/configs"
 	utils "ozon-test/pkg"
 	"ozon-test/pkg/models"
+	"strconv"
 	"time"
 )
 
@@ -88,12 +89,14 @@ func (repo *Repository) GetUser(login string, password []byte) (*models.UserItem
 func (repo *Repository) GetUserName(id uint64) (string, error) {
 	var name string
 
-	err := repo.db.QueryRow("SELECT profile.login FROM profile WHERE profile.id = $1 ", id).Scan(&name)
+	str := strconv.FormatUint(id, 10)
+
+	err := repo.db.QueryRow("SELECT profile.login FROM profile WHERE profile.id = $1 ", str).Scan(&name)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", nil
 		}
-		return "", fmt.Errorf("get query user error: %s", err.Error())
+		return "", fmt.Errorf("get query user name error: %s", err.Error())
 	}
 
 	return name, nil

@@ -85,18 +85,16 @@ func GetRedisCore(grpcCfg *configs.GrpcConfig, redisCfg *configs.DbRedisCfg, log
 }
 
 func (c *Core) GetPost(ctx context.Context, id uint64, limit *int, offset *int) (*model.Post, error) {
-	postItem, err := c.posts.GetPost(ctx, id, limit, offset)
+	postItem, err := c.posts.GetPost(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("get poster repo: %s", err.Error())
 	}
-
-	//fmt.Println(id, postItem, 2332)
 
 	if postItem.ID == "" {
 		return nil, nil
 	}
 
-	userId, err := strconv.ParseUint(postItem.ID, 10, 64)
+	userId, err := strconv.ParseUint(postItem.Author.ID, 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("parse user id err: %s", err.Error())
 	}
@@ -106,42 +104,97 @@ func (c *Core) GetPost(ctx context.Context, id uint64, limit *int, offset *int) 
 		return nil, fmt.Errorf("client request error: %s", err.Error())
 	}
 
+	if res == nil {
+		return nil, nil
+	}
+
 	postItem.Author.Login = res.Name
+
+	comments, err := c.posts.GetCommentsByPostId(ctx, id, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("get post comments error: %s", err.Error())
+	}
+
+	postItem.Comments = comments
+
+	for _, comment := range comments {
+		formatUint, _ := strconv.ParseUint(comment.Author.ID, 10, 64)
+
+		res, err := c.client.GetUserName(ctx, &auth.UserItemRequest{Id: formatUint})
+		if err != nil {
+			return nil, fmt.Errorf("client request error: %s", err.Error())
+		}
+
+		comment.Author.Login = res.Name
+	}
 
 	return postItem, nil
 }
 
 func (c *Core) GetPosts(ctx context.Context, limit *int, offset *int) ([]*model.Post, error) {
-	posts, err := c.posts.GetPosts(limit, offset)
+	posts, err := c.posts.GetPosts(ctx, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("get posts repo error: %s", err.Error())
+	}
+
+	for _, post := range posts {
+		formatUint, _ := strconv.ParseUint(post.Author.ID, 10, 64)
+
+		res, err := c.client.GetUserName(ctx, &auth.UserItemRequest{Id: formatUint})
+		if err != nil {
+			return nil, fmt.Errorf("client request error: %s", err.Error())
+		}
+
+		post.Author.Login = res.Name
 	}
 
 	return posts, nil
 }
 
 func (c *Core) GetCommentsByPostId(ctx context.Context, id uint64, limit *int, offset *int) ([]*model.Comment, error) {
-	comments, err := c.posts.GetCommentsByPostId(id, limit, offset)
+	have, err := c.posts.CheckPost(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("check post error: %s", err.Error())
+	}
+
+	if have == false {
+		return nil, nil
+	}
+
+	comments, err := c.posts.GetCommentsByPostId(ctx, id, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("get comments repo error: %s", err.Error())
 	}
 
-	//if len(comments) == 0 {
-	//	return nil, nil
-	//}
+	for _, comment := range comments {
+		formatUint, _ := strconv.ParseUint(comment.Author.ID, 10, 64)
 
-	//res, err := c.client.GetUserName(ctx, &auth.UserItemRequest{Id: userId})
-	//if err != nil {
-	//	return nil, fmt.Errorf("client request error: %s", err.Error())
-	//}
+		res, err := c.client.GetUserName(ctx, &auth.UserItemRequest{Id: formatUint})
+		if err != nil {
+			return nil, fmt.Errorf("client request error: %s", err.Error())
+		}
+
+		comment.Author.Login = res.Name
+	}
 
 	return comments, nil
 }
 
 func (c *Core) GetCommentsByCommentID(ctx context.Context, id uint64, limit *int, offset *int) ([]*model.Comment, error) {
-	comments, err := c.posts.GetCommentsCommentID(id, limit, offset)
+	comments, err := c.posts.GetCommentsCommentID(ctx, id, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("get comments repo error: %s", err.Error())
+	}
+
+	for _, comment := range comments {
+		formatUint, _ := strconv.ParseUint(comment.Author.ID, 10, 64)
+
+		res, err := c.client.GetUserName(ctx, &auth.UserItemRequest{Id: formatUint})
+		if err != nil {
+			return nil, fmt.Errorf("client request error: %s", err.Error())
+		}
+
+		comment.Author.Login = res.Name
 	}
 
 	return comments, nil
@@ -169,13 +222,13 @@ func (c *Core) CreateComment(ctx context.Context, comment *model.Comment) (bool,
 		return false, fmt.Errorf("parse comment id err: %s", err.Error())
 	}
 
-	if parentID == 0 {
-		checked, err = c.posts.CheckPost(postId)
-		if err != nil {
-			return false, err
-		}
-	} else {
-		checked, err = c.posts.CheckCommentByPost(postId, parentID)
+	checked, err = c.posts.CheckPost(ctx, postId)
+	if err != nil {
+		return false, err
+	}
+
+	if parentID != 0 {
+		checked, err = c.posts.CheckComment(ctx, parentID)
 		if err != nil {
 			return false, err
 		}
@@ -185,7 +238,7 @@ func (c *Core) CreateComment(ctx context.Context, comment *model.Comment) (bool,
 		return false, nil
 	}
 
-	result, err := c.posts.CreateComment(comment)
+	result, err := c.posts.CreateComment(ctx, comment)
 	if err != nil {
 		return false, fmt.Errorf("create comment repo error: %s", err.Error())
 	}
