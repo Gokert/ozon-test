@@ -19,7 +19,6 @@ type IPostRepo interface {
 	CreateComment(ctx context.Context, comment *model.Comment) (bool, error)
 	CheckPost(ctx context.Context, id uint64) (bool, error)
 	CheckComment(ctx context.Context, id uint64) (bool, error)
-	//CheckCommentByPost(ctx context.Context, postId uint64, parentId uint64) (bool, error)
 	GetCommentsByPostId(ctx context.Context, id uint64, limit *int, offset *int) ([]*model.Comment, error)
 	GetCommentsCommentID(ctx context.Context, id uint64, limit *int, offset *int) ([]*model.Comment, error)
 }

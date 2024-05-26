@@ -14,19 +14,6 @@ services:
     networks:
       - net
 
-  authpsx:
-    image: "postgres:latest"
-    environment:
-      POSTGRES_PASSWORD: ${AUTH_PSX_PASSWORD}
-      POSTGRES_USER: ${AUTH_PSX_USER}
-      POSTGRES_DB: ${AUTH_PSX_DBNAME}
-    volumes:
-      - ./scripts/sql/auth/init:/docker-entrypoint-initdb.d
-    ports:
-      - "${AUTH_PSX_DOCKER_PORT}:5432"
-    networks:
-      - net
-
   postspsx:
     image: "postgres:latest"
     environment:
@@ -37,6 +24,19 @@ services:
       - ./scripts/sql/posts/init:/docker-entrypoint-initdb.d
     ports:
       - "${POSTS_PSX_DOCKER_PORT}:5432"
+    networks:
+      - net
+
+  authpsx:
+    image: "postgres:latest"
+    environment:
+      POSTGRES_PASSWORD: ${AUTH_PSX_PASSWORD}
+      POSTGRES_USER: ${AUTH_PSX_USER}
+      POSTGRES_DB: ${AUTH_PSX_DBNAME}
+    volumes:
+      - ./scripts/sql/auth/init:/docker-entrypoint-initdb.d
+    ports:
+      - "${AUTH_PSX_DOCKER_PORT}:5432"
     networks:
       - net
 
@@ -55,7 +55,7 @@ services:
   postsapp:
     build:
       context: .
-      dockerfile: scripts/deploy/Dockerfile_posts
+      dockerfile: Dockerfile_posts
     ports:
       - "${POSTS_APP_PORT}:${POSTS_APP_PORT}"
     depends_on:
@@ -71,7 +71,7 @@ services:
   authapp:
     build:
       context: .
-      dockerfile: scripts/deploy/Dockerfile_auth
+      dockerfile: Dockerfile_auth
     ports:
       - "${AUTH_APP_PORT}:${AUTH_APP_PORT}"
       - "${AUTH_GRPC_PORT}:${AUTH_GRPC_PORT}"
